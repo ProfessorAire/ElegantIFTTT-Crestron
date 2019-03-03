@@ -6,13 +6,21 @@ using Crestron.SimplSharp;
 
 namespace ElegantIFTTT
 {
+    /// <summary>
+    /// Used to perform string matching to trigger digital output events from IFTTT messages sent to the Crestron system.
+    /// </summary>
     public class StringMatchingModule : ModuleBase
     {
-
+        /// <summary>
+        /// Used to notify that a match was found.
+        /// </summary>
         public delegate void TermFoundEvent(ushort termID);
         public TermFoundEvent TermFound { get; set; }
 
-        public override void ProcessEventData(EventData data)
+        /// <summary>
+        /// Processes the various data received from the IFTTT service. Only works if IsEnabled is true and the event's name matches the expected name.
+        /// </summary>
+        internal override void ProcessEventData(EventData data)
         {
             try
             {
@@ -35,6 +43,13 @@ namespace ElegantIFTTT
             }
         }
 
+
+        /// <summary>
+        /// Parses a string to see if it matches any of the EventData's data parts.
+        /// </summary>
+        /// <param name="search">The string to look for matches using. Can include prefixes to control how matching is performed.</param>
+        /// <param name="data">The EventData object to examine for matches.</param>
+        /// <returns>True if a match is found, false if no match is found.</returns>
         private bool ParseSearchData(string search, EventData data)
         {
             try

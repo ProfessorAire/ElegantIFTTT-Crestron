@@ -9,38 +9,82 @@ using Crestron.SimplSharp.Net.Https;
 
 namespace ElegantIFTTT
 {
+    /// <summary>
+    /// Provides the core module for communication to/from the IFTTT service.
+    /// Multiple can be used, but require unique Port numbers and IDs.
+    /// </summary>
     public class Manager : IDisposable
     {
+        /// <summary>
+        /// A list of Manager objects. Used to provide access to all managers, as well as ensure no duplicates are created.
+        /// </summary>
         private static List<Manager> managers = new List<Manager>();
 
+        /// <summary>
+        /// A list of modules that are registered to this manager.
+        /// </summary>
         private List<ModuleBase> modules = new List<ModuleBase>();
 
+        /// <summary>
+        /// The server object, used to listen to the IFTTT service.
+        /// </summary>
         private Crestron.SimplSharp.Net.Http.HttpServer server;
+
+        /// <summary>
+        /// The client object, used to send messages to the IFTTT service.
+        /// </summary>
         private Crestron.SimplSharp.Net.Https.HttpsClient client;
 
+        /// <summary>
+        /// The port to listen on the local network for messages.
+        /// External communication from the IFTTT service should be forwarded to this port for all messages intended for this module.
+        /// </summary>
         public int Port { get; set; }
+
+        /// <summary>
+        /// The unique ID of the manager. Used by modules to register with this manager.
+        /// </summary>
         public string ID { get; set; }
+
+        /// <summary>
+        /// The private key value used to provide communication to the IFTTT service.
+        /// </summary>
         public string Key { get; set; }
+
+        /// <summary>
+        /// The separator used to break-up incoming data sets from the IFTTT service.
+        /// </summary>
         public string Separator { get; set; }
 
+        /// <summary>
+        /// Used to provide bulk event data back to Simpl+. Only called if no modules are registered for a specific event.
+        /// </summary>
         public delegate void GenericEvent(SimplSharpString eventName, SimplSharpString Data1, SimplSharpString Data2,
             SimplSharpString Data3, SimplSharpString Data4, SimplSharpString Data5, SimplSharpString Data6,
             SimplSharpString Data7, SimplSharpString Data8, SimplSharpString Data9, SimplSharpString Data10);
         public GenericEvent ProcessGenericEvent { get; set; }
 
         /// <summary>
-        /// SIMPL+ can only execute the default constructor. If you have variables that require initialization, please
-        /// use an Initialize method
+        /// Provided for Simpl+ compatibility.
         /// </summary>
-        public Manager()
-        {
-        }
+        [Obsolete("Provided for Simpl+ compatibility.")]
+        public Manager() { }
 
+        /// <summary>
+        /// Returns a boolean if the manager with the given ID is registered and ready.
+        /// </summary>
         public static bool IsManagerRegistered(string id)
         {
             return (managers.Where((m) => m.ID == id).Count() > 0);
         }
 
+        /// <summary>
+        /// Registers this manager object. Will fail if a manager with the same ID already exists.
+        /// </summary>
+        /// <param name="managerID">The unique ID for the manager.</param>
+        /// <param name="port">The port to listen on for IFTTT communication.</param>
+        /// <param name="key">The IFTTT key to use for communicating to the service.</param>
+        /// <param name="separator">The separator used to break-up incoming data sets from the IFTTT service.</param>
         public void Register(string managerID, int port, string key, string separator)
         {
             ID = managerID;
@@ -55,18 +99,34 @@ namespace ElegantIFTTT
 
         }
 
-        public static void RegisterModule(ModuleBase module, string managerID)
+        /// <summary>
+        /// Used by modules to register with a manager, so as to be placed in its list of modules.
+        /// </summary>
+        /// <param name="module">The module being registered.</param>
+        /// <param name="managerID">The ID of the manager to register with.</param>
+        internal static void RegisterModule(ModuleBase module, string managerID)
         {
-            using (var secure = new CCriticalSection())
+            try
             {
-                var manager = managers.Where((m) => m.ID == managerID).First();
-                if (manager != null)
+                using (var secure = new CCriticalSection())
                 {
-                    manager.modules.Add(module);
+                    var manager = managers.Where((m) => m.ID == managerID).First();
+                    if (manager != null)
+                    {
+                        manager.modules.Add(module);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                CrestronConsole.PrintLine("Unable to register a module with the manager: " + managerID);
+                CrestronConsole.PrintLine(ex.Message);
             }
         }
 
+        /// <summary>
+        /// Call to open the server and start listening for communication from IFTTT.
+        /// </summary>
         public void OpenServer()
         {
             try
@@ -96,6 +156,9 @@ namespace ElegantIFTTT
             }
         }
 
+        /// <summary>
+        /// Call to close the server and stop listening for communication from IFTTT.
+        /// </summary>
         public void CloseServer()
         {
             if (server != null)
@@ -113,10 +176,22 @@ namespace ElegantIFTTT
             }
         }
 
+        /// <summary>
+        /// Used to send a command to the IFTTT service.
+        /// </summary>
+        /// <param name="name">The name of the command/event.</param>
+        /// <param name="value1">The first value to provide IFTTT. Can be an empty string.</param>
+        /// <param name="value2">The second value to provide IFTTT. Can be an empty string.</param>
+        /// <param name="value3">The third value to provide IFTTT. Can be an empty string.</param>
         public void SendGenericCommand(string name, string value1, string value2, string value3)
         {
             try
             {
+                if (client == null)
+                {
+                    CrestronConsole.PrintLine("IFTTT: Communication not enabled. Can't send message to service.");
+                    return;
+                }
                 string address = "https://maker.ifttt.com/trigger/" + name + "/with/key/" + Key;
                 if (value1 != "" || value2 != "" || value3 != "")
                 {
@@ -158,6 +233,11 @@ namespace ElegantIFTTT
             }
         }
 
+        /// <summary>
+        /// Handles data received from IFTTT. Passes to the correct module, or provides the data back to Simpl+ if no matching modules exist.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
         private void OnServerRequest(object sender, OnHttpRequestArgs args)
         {
             CrestronConsole.PrintLine("IFTTT: Received incoming message.");
@@ -194,20 +274,23 @@ namespace ElegantIFTTT
 
         }
 
+        /// <summary>
+        /// Call to dispose the class.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             CrestronEnvironment.GC.SuppressFinalize(true);
         }
 
+        /// <summary>
+        /// Calls clean up code.
+        /// </summary>
         public virtual void Dispose(bool isDisposing)
         {
             if (isDisposing)
             {
-                if (server != null)
-                {
-                    CloseServer();
-                }
+                CloseServer();
             }
         }
     }

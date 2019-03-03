@@ -6,6 +6,9 @@ using Crestron.SimplSharp;
 
 namespace ElegantIFTTT
 {
+    /// <summary>
+    /// Determines how an analog value should be parsed.
+    /// </summary>
     public enum NumericType
     {
         Raw = 0,

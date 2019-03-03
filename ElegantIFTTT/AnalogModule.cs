@@ -7,22 +7,45 @@ using ElegantIFTTT;
 
 namespace ElegantIFTTT
 {
+    /// <summary>
+    /// Used to parse analog values from IFTTT messages sent to the Crestron system.
+    /// </summary>
     public class AnalogModule : ModuleBase
     {
-        public NumericType NumType { get; set; }
-        public int Multiplier { get; set; }
+        /// <summary>
+        /// Determines how the value is processed, unsigned, signed, or percentage.
+        /// </summary>
+        internal NumericType NumType { get; set; }
 
+        /// <summary>
+        /// Multiplier used for percentages.
+        /// </summary>
+        internal int Multiplier { get; set; }
+
+        /// <summary>
+        /// Used to pass an unsigned or percentage value back to Simpl+.
+        /// </summary>
         public delegate void ValueUpdatedEvent(ushort termID, ushort value);
         public ValueUpdatedEvent ValueUpdated { get; set; }
 
+        /// <summary>
+        /// Used to pass a signed value back to Simpl+.
+        /// </summary>
         public delegate void SignedValueUpdatedEvent(ushort termID, short value);
         public SignedValueUpdatedEvent SignedValueUpdated { get; set; }
 
-        public AnalogModule()
-        {
-            NumType = NumericType.Raw;
-        }
+        /// <summary>
+        /// Provided for Simpl+. Use the register method to ready this class.
+        /// </summary>
+        [Obsolete("Provided for Simpl+. Use the Register method to ready this class.")]
+        public AnalogModule() { }
 
+        /// <summary>
+        /// Registers the class with the Manager class.
+        /// </summary>
+        /// <param name="managerID">The ID of the primary IFTTT manager module.</param>
+        /// <param name="eventName">The Event Name to look for in communications from the IFTTT service.</param>
+        /// <param name="numericType">How to process the analog value. 0: Unsigned, 1: Percent, 2: Signed</param>
         public void Register(string managerID, string eventName, ushort numericType)
         {
             base.Register(managerID, eventName);
@@ -37,7 +60,10 @@ namespace ElegantIFTTT
             }
         }
 
-        public override void ProcessEventData(EventData data)
+        /// <summary>
+        /// Processes the various data received from the IFTTT service. Only works if IsEnabled is true and the event's name matches the expected name.
+        /// </summary>
+        internal override void ProcessEventData(EventData data)
         {
             if (!IsEnabled || data.Name != EventName) { return; }
             for (var i = 0; i < Terms.Count; i++)
@@ -105,6 +131,12 @@ namespace ElegantIFTTT
             }
         }
 
+        /// <summary>
+        /// Parses a string to see if it matches any of the EventData's data parts.
+        /// </summary>
+        /// <param name="search">The string to look for matches using. Can include prefixes to control how matching is performed.</param>
+        /// <param name="data">The EventData object to examine for matches.</param>
+        /// <returns>True if a match is found, false if no match is found.</returns>
         private bool ParseSearchData(string search, EventData data)
         {
             try

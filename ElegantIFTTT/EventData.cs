@@ -6,6 +6,9 @@ using Crestron.SimplSharp;
 
 namespace ElegantIFTTT
 {
+    /// <summary>
+    /// The EventData class holds all possible data elements received from an IFTTT event.
+    /// </summary>
     public class EventData
     {
 
@@ -21,6 +24,11 @@ namespace ElegantIFTTT
         public string Data9 { get; set; }
         public string Data10 { get; set; }
 
+        /// <summary>
+        /// Parses the available data into properties.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
         public static EventData Parse(string[] data)
         {
             var eventData = new EventData();
@@ -38,6 +46,9 @@ namespace ElegantIFTTT
             return eventData;
         }
 
+        /// <summary>
+        /// Checks a search string to see if any of the data objects are equal to it.
+        /// </summary>
         public bool DataEquals(string search)
         {
             if (Data1 == search || Data2 == search || Data3 == search || Data4 == search || Data5 == search ||
@@ -48,6 +59,9 @@ namespace ElegantIFTTT
             return false;
         }
 
+        /// <summary>
+        /// Checks a search string to see if none of the data objects are equal to it.
+        /// </summary>
         public bool DataNotEquals(string search)
         {
             if (Data1 == search || Data2 == search || Data3 == search || Data4 == search || Data5 == search ||
@@ -58,6 +72,9 @@ namespace ElegantIFTTT
             return true;
         }
 
+        /// <summary>
+        /// Checks a search string to see if any of the data objects include it.
+        /// </summary>
         public bool DataIncludes(string search)
         {
             if (Data1.Contains(search) || Data2.Contains(search) || Data3.Contains(search) || Data4.Contains(search) || Data5.Contains(search) ||
@@ -68,6 +85,9 @@ namespace ElegantIFTTT
             return false;
         }
 
+        /// <summary>
+        /// Checks a search string to see if any of the data objects exclude it.
+        /// </summary>
         public bool DataExcludes(string search)
         {
             if (Data1.Contains(search) || Data2.Contains(search) || Data3.Contains(search) || Data4.Contains(search) || Data5.Contains(search) ||
@@ -78,6 +98,9 @@ namespace ElegantIFTTT
             return true;
         }
 
+        /// <summary>
+        /// Checks a search string and parses it as a numeric value to see if it is greater than any of the data objects.
+        /// </summary>
         public bool DataGreaterThan(string search)
         {
             try
@@ -114,7 +137,10 @@ namespace ElegantIFTTT
             return false;
         }
 
-        public int? ParseInteger(string value)
+        /// <summary>
+        /// Returns an nullable integer from a string.
+        /// </summary>
+        internal int? ParseInteger(string value)
         {
             try
             {
@@ -126,6 +152,9 @@ namespace ElegantIFTTT
             }
         }
 
+        /// <summary>
+        /// Checks a search string and parses it as a numeric value to see if it is less than any of the data objects.
+        /// </summary>
         public bool DataLessThan(string search)
         {
             try
@@ -162,6 +191,9 @@ namespace ElegantIFTTT
             return false;
         }
 
+        /// <summary>
+        /// Checks a search string and parses it as a numeric value to see if it is greater than or equal to any of the data objects.
+        /// </summary>
         public bool DataGreaterThanOrEqual(string search)
         {
             try
@@ -198,6 +230,9 @@ namespace ElegantIFTTT
             return false;
         }
 
+        /// <summary>
+        /// Checks a search string and parses it as a numeric value to see if it is less than or equal to any of the data objects.
+        /// </summary>
         public bool DataLessThanOrEqual(string search)
         {
             try
