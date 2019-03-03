@@ -1,0 +1,106 @@
+#CATEGORY "46" "Elegant Modules" // Custom
+//CRM
+//Elegant Video and Soundworks
+
+//Generic Template
+
+//____Compiler Directives____
+
+#SYMBOL_NAME "Elegant IFTTT Manager Processor v1.0"
+#ENABLE_STACK_CHECKING
+//#DEFINE_CONSTANT
+#ENABLE_TRACE
+//#DEFAULT_NONVOLATILE
+#DEFAULT_VOLATILE
+#HELP_PDF_FILE "ElegantIFTTTManager-v1.0.pdf"
+
+#INCLUDEPATH ""
+#USER_SIMPLSHARP_LIBRARY "ElegantIFTTT"
+
+#Help_Begin
+
+#Help_End
+
+//____Inputs/Outputs
+DIGITAL_INPUT _SKIP_,_SKIP_,_SKIP_,_SKIP_,Enable,_SKIP_,SendEvent;
+// ANALOG_INPUT
+STRING_INPUT _SKIP_, OutgoingEventName[256], _SKIP_, Value1[256], Value2[256], Value3[256];
+// BUFFER_INPUT
+
+DIGITAL_OUTPUT _SKIP_,_SKIP_,_SKIP_,_SKIP_,EventReceived;
+// ANALOG_OUTPUT
+STRING_OUTPUT _SKIP_, IncomingEventName, Data[10];
+
+LONG_INTEGER_PARAMETER Port;
+STRING_PARAMETER Key[256], ID[10], Separator[1];
+
+#BEGIN_PARAMETER_PROPERTIES Separator
+	propDefaultValue = "|";
+#END_PARAMETER_PROPERTIES
+
+
+//Class_Name Local_Name
+Manager iftttManager;
+
+//____Global Variables____
+integer ready;
+
+//____Functions____
+
+//____Callback Functions____
+callback function GenericEvent(string eName, string D1, string D2,
+string D3, string D4, string D5, string D6, string D7, string D8,
+string D9, string D10)
+{
+	IncomingEventName = eName;
+	Data[1] = D1;
+	Data[2] = D2;
+    Data[3] = D3;
+    Data[4] = D4;
+    Data[5] = D5;
+    Data[6] = D6;
+    Data[7] = D7;
+    Data[8] = D8;
+    Data[9] = D9;
+    Data[10] = D10;
+    Pulse(10, EventReceived);
+}
+//____Events____
+
+PUSH SendEvent
+{
+	if(ready = 1 && Enable = 1 && OutgoingEventName <> "")
+	{
+    	iftttManager.SendGenericCommand(OutgoingEventName, Value1, Value2, Value3);
+	}
+}
+
+PUSH Enable
+{
+	if(ready = 1)
+	{
+		iftttManager.OpenServer();
+	}
+}
+
+// If the module is ready this closes the IFTTT server.
+RELEASE Enable
+{
+	if(ready = 1)
+	{
+		iftttManager.CloseServer();
+	}
+}
+
+//____Start-Up Code____
+FUNCTION Main() {
+	ready = 0;
+    WaitForInitializationComplete();
+    RegisterDelegate(iftttManager, ProcessGenericEvent, GenericEvent);
+	iftttManager.Register(ID, Port, Key, Separator);
+	ready = 1;
+	if(Enable = 1)
+	{
+    	iftttManager.OpenServer();
+	}
+}

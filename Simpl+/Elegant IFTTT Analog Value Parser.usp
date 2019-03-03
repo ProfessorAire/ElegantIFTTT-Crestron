@@ -1,0 +1,129 @@
+#CATEGORY "46" "Elegant Modules" // Custom
+//CRM
+//Elegant Video and Soundworks
+
+//Generic Template
+
+//____Compiler Directives____
+
+#SYMBOL_NAME "Elegant IFTTT Analog Value Parser v1.0"
+#ENABLE_STACK_CHECKING
+//#DEFINE_CONSTANT
+#ENABLE_TRACE
+//#DEFAULT_NONVOLATILE
+#DEFAULT_VOLATILE
+#HELP_PDF_FILE "ElegantIFTTTAnalogValueParser-v1.0.pdf"
+#ANALOG_SERIAL_EXPAND OutputsWithParams
+
+#INCLUDEPATH ""
+#USER_SIMPLSHARP_LIBRARY "ElegantIFTTT"
+
+#Help_Begin
+ModuleID must match the ID of a Elegant IFTTT Manager.
+EventName must match an event expected from an IFTTT command.
+
+StringToParse is the value to look for in the data section of the string from IFTTT.*
+
+This module expects a total of three pieces of data from IFTTT.
+
+1. The Event Name.
+2. The string to parse. If you're needing to fire an event with no string, just a number, pass an empty string
+via IFTTT and place two quotes on the StringToParse parameter.
+3. The numeric value to parse.
+
+Example:
+Say: "Turn on the living room lights at 50 percent"
+Send from IFTTT: lights_on|living room|50
+
+Then place the string "=living room" and it only outputs the value on the analog if the data returns matches living room.
+
+*The following prefixes can be used to determine how the string is parsed:
+
+1. =
+    Leave a prefix off, or provide the = sign before a string and the string has to equal a data element to pulse the output.
+2. !
+    Use a ! to pulse the output if none of the outputs match the string.
+3. +
+    Use a + to pulse the output if the string is found anywhere in any of the data elements.
+4. -
+    Use a - to pulse the output if the string isn't found anywhere in any of the data elements.
+5. >
+    Use a > sign to parse and compare the strings and data elements as integers. If parsing fails this will too.
+    The equation used is: DataFromIFTTT > StringToParse
+6. <
+    Use a < sign to parse and compare the strings and data elements as integers. If parsing fails this will too.
+    The equation used is: DataFromIFTTT < StringToParse
+7. >=
+    Use a >= sign to parse and compare the strings and data elements as integers. If parsing fails this will too.
+    The equation used is: DataFromIFTTT >= StringToParse
+8. <=
+    Use a <= sign to parse and compare the strings and data elements as integers. If parsing fails this will too.
+    The equation used is: DataFromIFTTT <= StringToParse
+
+
+#Help_End
+
+//____Inputs/Outputs
+DIGITAL_INPUT _SKIP_,_SKIP_,_SKIP_,Enable;
+
+ANALOG_OUTPUT _SKIP_,_SKIP_,_SKIP_,_SKIP_;
+ANALOG_OUTPUT NewValue[100];
+
+STRING_PARAMETER ManagerID[10],EventName[50];
+INTEGER_PARAMETER AnalogType,_SKIP_;
+STRING_PARAMETER StringToParse[100][50];
+#BEGIN_PARAMETER_PROPERTIES AnalogType
+    propValidUnits = unitDecimal;
+    propDefaultUnit = unitDecimal;
+    propList = {0d, "RAW Integer"},{1d, "Percent"},{2d, "Signed Integer"};
+#END_PARAMETER_PROPERTIES
+
+
+
+//Class_Name Local_Name
+AnalogModule iftttModule;
+
+//____Callback Functions____
+callback function ProcessValueUpdated(integer id, integer val)
+{
+    NewValue[id] = val;
+}
+
+callback function ProcessSignedValueUpdated(integer id, signed_integer val)
+{
+   NewValue[id] = val;
+}
+
+//____Events____
+
+PUSH Enable
+{
+	iftttModule.Enable();
+}
+RELEASE Enable
+{
+    iftttModule.Disable();
+}
+
+//____Start-Up Code____
+FUNCTION Main() {
+    integer i;
+    WaitForInitializationComplete();
+    while(iftttModule.IsManagerReady(ManagerID) = 0)
+    {
+         Delay(100);
+    }
+    RegisterDelegate(iftttModule, ValueUpdated, ProcessValueUpdated);
+    RegisterDelegate(iftttModule, SignedValueUpdated, ProcessSignedValueUpdated);
+    iftttModule.Register(ManagerID, EventName, AnalogType);
+    
+    for(i = 1 to 100)
+    {
+        if(IsSignalDefined(NewValue[i]))
+        {
+            iftttModule.AddSearchTerm(i, StringToParse[i]);
+        }
+    }                
+
+
+ }                                    

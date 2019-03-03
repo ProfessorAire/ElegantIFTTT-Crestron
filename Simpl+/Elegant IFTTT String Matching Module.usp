@@ -1,0 +1,108 @@
+#CATEGORY "46" "Elegant Modules" // Custom
+//CRM
+//Elegant Video and Soundworks
+
+//Generic Template
+
+//____Compiler Directives____
+
+#SYMBOL_NAME "Elegant IFTTT String Matching Module v1.0"
+#ENABLE_STACK_CHECKING
+//#DEFINE_CONSTANT
+#ENABLE_TRACE
+//#DEFAULT_NONVOLATILE
+#DEFAULT_VOLATILE
+#HELP_PDF_FILE "ElegantIFTTTStringMatching-v1.0.pdf"
+#DIGITAL_EXPAND OutputsWithParams
+
+#INCLUDEPATH ""
+#USER_SIMPLSHARP_LIBRARY "ElegantIFTTT"
+
+#Help_Begin
+ModuleID must match the ID of a Elegant IFTTT Manager.
+EventName must match an event expected from an IFTTT command.
+
+StringToParse should be a string you want to parse to find in the data returned from the event.
+Every single piece of data is checked and if the requested parse type matches any of the data
+points, it will be fired.*
+
+EventTriggered pulses for a 10th of a second whenever a match is found.
+
+*The following prefixes can be used to determine how the string is parsed:
+
+1. =
+    Leave a prefix off, or provide the = sign before a string and the string has to equal a data element to pulse the output.
+2. !
+    Use a ! to pulse the output if none of the outputs match the string.
+3. +
+    Use a + to pulse the output if the string is found anywhere in any of the data elements.
+4. -
+    Use a - to pulse the output if the string isn't found anywhere in any of the data elements.
+5. >
+    Use a > sign to parse and compare the strings and data elements as integers. If parsing fails this will too.
+    The equation used is: DataFromIFTTT > StringToParse
+6. <
+    Use a < sign to parse and compare the strings and data elements as integers. If parsing fails this will too.
+    The equation used is: DataFromIFTTT < StringToParse
+7. >=
+    Use a >= sign to parse and compare the strings and data elements as integers. If parsing fails this will too.
+    The equation used is: DataFromIFTTT >= StringToParse
+8. <=
+    Use a <= sign to parse and compare the strings and data elements as integers. If parsing fails this will too.
+    The equation used is: DataFromIFTTT <= StringToParse
+
+
+#Help_End
+
+//____Inputs/Outputs
+DIGITAL_INPUT _SKIP_,_SKIP_,Enable;
+
+DIGITAL_OUTPUT _SKIP_,_SKIP_,_SKIP_,_SKIP_,EventTriggered[100];
+
+
+STRING_PARAMETER ManagerID[10],EventName[50],_SKIP_,_SKIP_;
+STRING_PARAMETER StringToParse[100][50];
+
+
+//Class_Name Local_Name
+StringMatchingModule iftttModule;
+
+//____Callback Functions____
+callback function ProcessTermFound(integer id)
+{
+    pulse(10, EventTriggered[id]);
+}
+
+//____Events____
+
+PUSH Enable
+{
+	iftttModule.Enable();
+}
+RELEASE Enable
+{
+    iftttModule.Disable();
+}
+
+//____Start-Up Code____
+FUNCTION Main() {
+    integer i;
+    WaitForInitializationComplete();
+    RegisterDelegate(iftttModule, TermFound, ProcessTermFound);
+        while(iftttModule.IsManagerReady(ManagerID) = 0)
+    {
+         Delay(100);
+    }
+    
+	iftttModule.Register(ManagerID, EventName);
+    
+    for(i = 1 to 100)
+    {
+        if(IsSignalDefined(EventTriggered[i]))
+        {
+            iftttModule.AddSearchTerm(i, StringToParse[i]);
+        }
+    }                
+
+
+ }                                    
