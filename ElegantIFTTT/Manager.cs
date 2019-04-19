@@ -222,9 +222,11 @@ namespace ElegantIFTTT
                 clientRequest.RequestType = Crestron.SimplSharp.Net.Https.RequestType.Post;
                 clientRequest.Url.Parse(address);
 
-                var response = client.Dispatch(clientRequest);
-
-                CrestronConsole.PrintLine("IFTTT: " + response.ContentString);
+                using(var _ = new CCriticalSection())
+                {
+                    var response = client.Dispatch(clientRequest);
+                    CrestronConsole.PrintLine("IFTTT: " + response.ContentString);
+                }
             }
             catch (Exception ex)
             {
