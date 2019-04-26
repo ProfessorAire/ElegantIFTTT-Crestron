@@ -147,6 +147,8 @@ namespace ElegantIFTTT
             try
             {
                 client = new HttpsClient();
+                client.HostVerification = false;
+                client.PeerVerification = false;
                 client.KeepAlive = false;
             }
             catch (Exception ex)
