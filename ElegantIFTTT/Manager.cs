@@ -64,11 +64,25 @@ namespace ElegantIFTTT
             SimplSharpString Data7, SimplSharpString Data8, SimplSharpString Data9, SimplSharpString Data10);
         public GenericEvent ProcessGenericEvent { get; set; }
 
+        public event EventHandler<EventDataReceivedEventArgs> GenericEventReceived;
+
         /// <summary>
         /// Provided for Simpl+ compatibility.
         /// </summary>
         [Obsolete("Provided for Simpl+ compatibility.")]
         public Manager() { }
+
+        /// <summary>
+        /// Creates a new instance of the Manager, registering it in the process.
+        /// </summary>
+        /// <param name="managerID">The unique ID for the manager.</param>
+        /// <param name="port">The port to listen on for IFTTT communication.</param>
+        /// <param name="key">The IFTTT key to use for communicating to the service.</param>
+        /// <param name="separator">The separator used to break-up incoming data sets from the IFTTT service.</param>
+        public Manager(string managerID, int port, string key, string separator)
+        {
+            Register(managerID, port, key, separator);
+        }
 
         /// <summary>
         /// Returns a boolean if the manager with the given ID is registered and ready.
@@ -108,13 +122,10 @@ namespace ElegantIFTTT
         {
             try
             {
-                using (var secure = new CCriticalSection())
+                var manager = managers.Where((m) => m.ID == managerID).First();
+                if (manager != null)
                 {
-                    var manager = managers.Where((m) => m.ID == managerID).First();
-                    if (manager != null)
-                    {
-                        manager.modules.Add(module);
-                    }
+                    manager.modules.Add(module);
                 }
             }
             catch (Exception ex)
@@ -178,6 +189,51 @@ namespace ElegantIFTTT
             }
         }
 
+        public void SendGenericCommand(string commandName, params string[] values)
+        {
+            try
+            {
+                if (client == null)
+                {
+                    return;
+                }
+                var address = new StringBuilder();
+                address.AppendFormat("https://maker.ifttt.com/trigger/{0}/with/key/{1}", commandName, Key);
+                if (values != null && values.Length > 0)
+                {
+                    address.Append("?");
+                    for (var i = 0; i < values.Length; i++)
+                    {
+                        if (i > 0)
+                        {
+                            address.Append("&");
+                        }
+                        address.AppendFormat("value{0}={1}", i + 1, values[i] ?? "");
+                    }
+                }
+
+                var clientRequest = new HttpsClientRequest();
+                clientRequest.RequestType = Crestron.SimplSharp.Net.Https.RequestType.Post;
+                clientRequest.Url.Parse(address.ToString());
+
+                var response = client.Dispatch(clientRequest);
+                if (response != null)
+                {
+                    CrestronConsole.PrintLine("IFTTT: " + response.ContentString);
+                }
+            }
+            catch (HttpsException ex)
+            {
+                CrestronConsole.PrintLine("IFTTT: HTTPS Exception encoutered when sending data to IFTTT webhooks serice.");
+                CrestronConsole.PrintLine("IFTTT: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                CrestronConsole.PrintLine("IFTTT: Error encountered when sending data to IFTTT webhooks service.");
+                CrestronConsole.PrintLine("IFTTT: " + ex.Message);
+            }
+        }
+
         /// <summary>
         /// Used to send a command to the IFTTT service.
         /// </summary>
@@ -224,11 +280,12 @@ namespace ElegantIFTTT
                 clientRequest.RequestType = Crestron.SimplSharp.Net.Https.RequestType.Post;
                 clientRequest.Url.Parse(address);
 
-                using(var _ = new CCriticalSection())
+                var response = client.Dispatch(clientRequest);
+                if (response != null)
                 {
-                    var response = client.Dispatch(clientRequest);
                     CrestronConsole.PrintLine("IFTTT: " + response.ContentString);
                 }
+
             }
             catch (Exception ex)
             {
@@ -264,9 +321,16 @@ namespace ElegantIFTTT
                 else
                 {
                     CrestronConsole.PrintLine("IFTTT: Trying to process generic event.");
-                    ProcessGenericEvent(eventData.Name, eventData.Data1, eventData.Data2,
-                        eventData.Data3, eventData.Data4, eventData.Data5, eventData.Data6, eventData.Data7,
-                        eventData.Data8, eventData.Data9, eventData.Data10);
+                    if (ProcessGenericEvent != null)
+                    {
+                        ProcessGenericEvent(eventData.Name, eventData.Data1, eventData.Data2,
+                            eventData.Data3, eventData.Data4, eventData.Data5, eventData.Data6, eventData.Data7,
+                            eventData.Data8, eventData.Data9, eventData.Data10);
+                    }
+                    if (GenericEventReceived != null)
+                    {
+                        GenericEventReceived(this, new EventDataReceivedEventArgs(eventData));
+                    }
                 }
                 eventData = null;
             }

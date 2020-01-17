@@ -4,5 +4,5 @@
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("IFTTT")]
 [assembly: AssemblyCopyright("Copyright ©  2018")]
-[assembly: AssemblyVersion("1.0.0.*")]
+[assembly: AssemblyVersion("1.0.1.*")]
 
